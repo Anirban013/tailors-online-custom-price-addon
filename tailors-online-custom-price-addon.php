@@ -20,7 +20,7 @@ function check_for_prerequisites(){
 
 register_activation_hook(__FILE__, 'check_for_prerequisites');
 
-add_action('admin_enqueue_scripts', 'tailor_woocom_enqueue_scripts', 10);
+// add_action('admin_enqueue_scripts', 'tailor_woocom_enqueue_scripts', 10);
 function tailor_woocom_enqueue_scripts(){
     $posts = get_all_customizer_posts();
     $current_customizer = get_post_meta( $_GET['post'], $key = 'product_customizer', $single = true );
@@ -87,4 +87,27 @@ if(!function_exists('get_all_customizer_posts')){
         }        
         return $data;
     }
+}
+
+add_action( 'woocommerce_before_calculate_totals', 'woocom_add_customizer_rates_to_cart' );
+function woocom_add_customizer_rates_to_cart( $cart_object ) {
+	 	
+ 	if ( is_admin() && ! defined( 'DOING_AJAX' ) )
+    	return;
+
+    foreach ( $cart_object->cart_contents as $key => $value ) {
+    		
+		if(array_key_exists('customizer_id', $value['cart_data'])){
+
+
+			$customization_price = get_post_meta( $value['cart_data']['customizer_id'], $key = '_customizer_price', $single = true );
+			if( empty( $customization_price ) )
+				return;
+			$price = empty( get_post_meta( $value['product_id'], '_sale_price', true ) ) ? get_post_meta( $value['product_id'], '_regular_price', true ) : get_post_meta( $value['product_id'], '_sale_price', true );
+
+			$customization_price += $price;
+			
+        	$value['data']->set_price( $customization_price );
+		}
+	}
 }
